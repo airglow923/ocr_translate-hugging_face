@@ -18,7 +18,7 @@
 ###################################################################################
 """Plugins to enable usage of HuggingFace Models in ocr_translate"""
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 khawhite_ocr_model_data = {
     'name': 'kha-white/manga-ocr-base',
