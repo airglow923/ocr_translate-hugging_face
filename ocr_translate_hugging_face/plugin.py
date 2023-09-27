@@ -120,7 +120,7 @@ class EnvMixin():
 class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
     """OCRtranslate plugin to allow loading of hugginface seq2seq model as translator."""
 
-    class Meta:
+    class Meta: # pylint: disable=missing-class-docstring
         proxy = True
 
     def __init__(self, *args, **kwargs):
@@ -149,7 +149,12 @@ class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
             torch.cuda.empty_cache()
 
 
-    def _translate(self, tokens: list, src_lang: str, dst_lang: str, options: dict = None) -> str | list[str]:
+    def _translate(
+            self,
+            tokens: list[str] | list[list[str]],
+            src_lang: str, dst_lang: str,
+            options: dict = None
+            ) -> str | list[str]:
         """Translate a text using a the loaded model.
 
         Args:
@@ -168,6 +173,8 @@ class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
             raise RuntimeError('Model not loaded')
         if options is None:
             options = {}
+        if not isinstance(tokens, list):
+            raise TypeError('tokens must be a list of strings or a list of list of strings')
 
         logger.debug(f'TSL: {tokens}')
         if len(tokens) == 0:
@@ -216,7 +223,7 @@ class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
 
 class HugginfaceVEDModel(m.OCRModel, EnvMixin):
     """OCRtranslate plugin to allow loading of hugginface VisionEncoderDecoder model as text OCR."""
-    class Meta:
+    class Meta: # pylint: disable=missing-class-docstring
         proxy = True
 
     def __init__(self, *args, **kwargs):

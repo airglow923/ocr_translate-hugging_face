@@ -44,7 +44,7 @@ tests = [
     "pytest",
     "pytest-cov",
     "pytest-regressions~=2.4",
-    "pytest-django~=4.5.2",
+    # "pytest-django~=4.5.2",
 ]
 pre-commit = [
     "pre-commit~=3.3.3",
@@ -81,10 +81,10 @@ log_cli = 1
 
 [tool.pylint.main]
 load-plugins = [
-    "pylint_django",
+    # "pylint_django",
     "pylint_pytest"
 ]
-django-settings-module = "mysite.settings"
+# django-settings-module = "mysite.settings"
 
 [tool.pylint.messages_control]
 disable = [

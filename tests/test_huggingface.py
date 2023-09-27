@@ -54,7 +54,7 @@ def test_load_hugginface_model_invalide_type():
 
 def test_load_hugginface_model_return_none(monkeypatch):
     """Test high-level loading a huggingface model. Return None from load."""
-    def mock_load(*args):
+    def mock_load(*args): # pylint: disable=unused-argument
         """Mocked load function."""
         return None
     monkeypatch.setattr(hugginface.Loaders, '_load', mock_load)
@@ -71,7 +71,7 @@ def test_load_hugginface_model_return_none(monkeypatch):
 ])
 def test_load_hugginface_model_success(monkeypatch, model_type):
     """Test high-level loading a huggingface model."""
-    def mock_load(loader, *args):
+    def mock_load(loader, *args): # pylint: disable=unused-argument
         """Mocked load function."""
         assert loader == hugginface.Loaders.mapping[model_type]
         class App():
@@ -102,7 +102,8 @@ def test_load_from_storage_dir_fail(monkeypatch, mock_loader, tmpdir, ved_model)
 
 def test_load_from_storage_dir_success(monkeypatch, mock_loader, tmpdir, ved_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    monkeypatch.setattr(ved_model, 'root', Path(str(tmpdir)))
     # Reload to make ENV effective
     # ved_model = hugginface.HugginfaceVEDModel.objects.get(name = ved_model.name)
 
@@ -113,9 +114,10 @@ def test_load_from_storage_dir_success(monkeypatch, mock_loader, tmpdir, ved_mod
 
 def test_load_from_storage_cache_success(monkeypatch, mock_loader, tmpdir, ved_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    monkeypatch.setattr(ved_model, 'root', Path(str(tmpdir)))
     # Reload to make ENV effective
-    ved_model = hugginface.HugginfaceVEDModel.objects.get(name = ved_model.name)
+    # ved_model = hugginface.HugginfaceVEDModel.objects.get(name = ved_model.name)
 
     tmpdir.mkdir('models--' + ved_model.name.replace('/', '--'))
     ved_model.load()
@@ -193,9 +195,10 @@ def test_get_mnt_wrong_options():
 
 def test_load_from_storage_dir_fail_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
     """Test low-level loading a huggingface model from storage (missing file)."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    monkeypatch.setattr(s2s_model, 'root', Path(str(tmpdir)))
     # Reload to make ENV effective
-    s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
+    # s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
 
     # Load is supposed to test direcotry first and than fallnack to cache
     # Exception should always be from not found in cache first
@@ -205,8 +208,9 @@ def test_load_from_storage_dir_fail_s2s(monkeypatch, mock_loader, tmpdir, s2s_mo
 def test_load_from_storage_dir_success_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
     """Test low-level loading a huggingface model from storage (success)."""
     monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    monkeypatch.setattr(s2s_model, 'root', Path(str(tmpdir)))
     # Reload to make ENV effective
-    s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
+    # s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
 
     ptr = tmpdir
     for pth in Path(s2s_model.name).parts:
@@ -215,9 +219,10 @@ def test_load_from_storage_dir_success_s2s(monkeypatch, mock_loader, tmpdir, s2s
 
 def test_load_from_storage_cache_success_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
+    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
     # Reload to make ENV effective
-    s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
+    monkeypatch.setattr(s2s_model, 'root', Path(str(tmpdir)))
+    # s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
 
     tmpdir.mkdir('models--' + s2s_model.name.replace('/', '--'))
     s2s_model.load()
@@ -252,27 +257,25 @@ def test_pipeline_notinit_s2s(s2s_model):
     with pytest.raises(RuntimeError, match=r'^Model not loaded$'):
         s2s_model._translate('test', 'ja', 'en') # pylint: disable=protected-access
 
-# def test_pipeline_wrong_type(monkeypatch, mock_tsl_tokenizer, s2s_model):
-#     """Test tsl pipeline with wrong type."""
-#     monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer(s2s_model.name))
-#     with pytest.raises(TypeError, match=r'^Unsupported type for text:.*'):
-#         s2s_model._translate(1, 'ja', 'en') # pylint: disable=protected-access
+def test_pipeline_wrong_type(monkeypatch, mock_tsl_model, mock_tsl_tokenizer, s2s_model):
+    """Test tsl pipeline with wrong type."""
+    monkeypatch.setattr(s2s_model, 'model', mock_tsl_model(s2s_model.name))
+    monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer(s2s_model.name))
+    with pytest.raises(TypeError):
+        s2s_model._translate(1, 'ja', 'en') # pylint: disable=protected-access
 
 def test_pipeline_no_tokens(monkeypatch, mock_tsl_tokenizer, s2s_model):
     """Test tsl pipeline with no tokens generated from pre_tokenize."""
-    # monkeypatch.setattr(s2s_model, 'pre_tokenize', lambda *args, **kwargs: [])
     monkeypatch.setattr(s2s_model, 'model', '1')
     monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer('test/id'))
 
-    res = s2s_model._translate('', 'ja', 'en') # pylint: disable=protected-access
+    res = s2s_model._translate([], 'ja', 'en') # pylint: disable=protected-access
 
     assert res == ''
 
 def test_pipeline_m2m(monkeypatch, mock_tsl_tokenizer, mock_tsl_model, s2s_model):
     """Test tsl pipeline with m2m model."""
     monkeypatch.setattr(hugginface, 'M2M100Tokenizer', mock_tsl_tokenizer)
-    # Reload to make ENV effective
-    s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
     monkeypatch.setattr(s2s_model, 'model', mock_tsl_model(s2s_model.name))
     monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer(s2s_model.name))
 

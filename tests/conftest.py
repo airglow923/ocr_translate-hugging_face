@@ -85,7 +85,6 @@ def ved_model(language):
         'entrypoint': 'hugginface.ved'
     }
 
-
     return hugginface.HugginfaceVEDModel(**model_dict)
 
 @pytest.fixture()
@@ -97,14 +96,7 @@ def s2s_model(language):
         'entrypoint': 'hugginface.seq2seq'
     }
 
-    entrypoint = model_dict.pop('entrypoint')
-    res = m.TSLModel.objects.create(**model_dict)
-    res.entrypoint = entrypoint
-    res.src_languages.add(language)
-    res.dst_languages.add(language)
-    res.save()
-
-    return hugginface.HugginfaceSeq2SeqModel.objects.get(name = res.name)
+    return hugginface.HugginfaceSeq2SeqModel(**model_dict)
 
 
 
