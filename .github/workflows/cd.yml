@@ -17,15 +17,13 @@ jobs:
         with:
             python-version: "3.10"
 
-      - name: Install Python dependencies
+      - name: Install Flit
         run: pip install flit
 
       - name: Build and publish on test PyPI
-        run: |
-          export FLIT_INDEX_URL \
-          export FLIT_USERNAME \
-          export FLIT_PASSWORD \
+        run: >
           flit publish
+        shell: bash
         env:
           FLIT_INDEX_URL: https://test.pypi.org/legacy/
           FLIT_USERNAME: __token__
@@ -39,11 +37,9 @@ jobs:
           ocr_translate_hugging_face
 
       - name: Build and publish on PyPI
-        run: |
-          export FLIT_INDEX_URL \
-          export FLIT_USERNAME \
-          export FLIT_PASSWORD \
+        run: >
           flit publish
+        shell: bash
         env:
           FLIT_INDEX_URL: https://upload.pypi.org/legacy/
           FLIT_USERNAME: __token__
