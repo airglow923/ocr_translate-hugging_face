@@ -74,6 +74,12 @@ pre-commit = [
 [tool.flit.module]
 name = "ocr_translate_hugging_face"
 
+[tool.flit.sdist]
+exclude = [
+    ".gitignore", ".github", ".pre-commit-config.yaml",
+    "tests/", "tests/*",
+    ]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 DJANGO_SETTINGS_MODULE = "settings"
