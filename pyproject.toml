@@ -1,0 +1,114 @@
+[build-system]
+# build the package with [flit](https://flit.readthedocs.io)
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+# See https://www.python.org/dev/peps/pep-0621/
+name = "ocr_translate-hugging_face"
+dynamic = ["version"] # read from ocr_translate/__init__.py
+description = "Plugins to enable usage of HuggingFace Models in ocr_translate"
+authors = []
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+]
+keywords = ["django", "translation"]
+requires-python = ">=3.10"
+dependencies = [
+    "django-ocr_translate>=0.2.1,<1.0",
+    "Pillow~=9.5.0",
+    "opencv-python-headless~=4.8.0.74",
+
+    "torch~=2.0.1",
+    "torchvision~=0.15.2",
+
+    "transformers~=4.30.2",
+    "fugashi~=1.2.1",
+    "unidic-lite~=1.0.8",
+    "sacremoses~=0.0.53",
+    "safetensors~=0.3.1",
+    "sentencepiece~=0.1.99",
+]
+
+[project.urls]
+Source = "https://github.com/Crivella/ocr_translate-hugging_face"
+
+[project.optional-dependencies]
+release = [
+    "flit",
+]
+tests = [
+    "pytest",
+    "pytest-cov",
+    # "pytest-regressions~=2.4",
+    "pytest-django~=4.5.2",
+]
+pre-commit = [
+    "pre-commit~=3.3.3",
+    "pylint~=2.17.4",
+    "pylint-pytest~=1.1.2",
+    "pylint-django~=2.5.3",
+]
+
+[project.entry-points."ocr_translate.ocr_data"]
+"ocr.hugginface.ved.khawhite" = "ocr_translate_hugging_face:khawhite_ocr_model_data"
+
+[project.entry-points."ocr_translate.tsl_data"]
+"tsl.hugginface.seq2seq.helsinki_zh_en" = "ocr_translate_hugging_face:helsinki_zh_en_tsl_model_data"
+"tsl.hugginface.seq2seq.helsinki_ja_en" = "ocr_translate_hugging_face:helsinki_ja_en_tsl_model_data"
+"tsl.hugginface.seq2seq.helsinki_ko_en" = "ocr_translate_hugging_face:helsinki_ko_en_tsl_model_data"
+"tsl.hugginface.seq2seq.staka_ja_en" = "ocr_translate_hugging_face:staka_fugumt_ja_en_tsl_model_data"
+"tsl.hugginface.seq2seq.fbm2m_418m" = "ocr_translate_hugging_face:facebook_m2m100_418m_tsl_model_data"
+"tsl.hugginface.seq2seq.fbm2m_1_2b" = "ocr_translate_hugging_face:facebook_m2m100_1_2b_tsl_model_data"
+
+
+[project.entry-points."ocr_translate.ocr_models"]
+"hugginface.ved" = "ocr_translate_hugging_face.plugin:HugginfaceVEDModel"
+
+[project.entry-points."ocr_translate.tsl_models"]
+"hugginface.seq2seq" = "ocr_translate_hugging_face.plugin:HugginfaceSeq2SeqModel"
+
+[tool.flit.module]
+name = "ocr_translate_hugging_face"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+DJANGO_SETTINGS_MODULE = "settings"
+log_cli = 1
+pythonpath = ["./tests"]
+
+[tool.pylint.main]
+load-plugins = [
+    # "pylint_django",
+    "pylint_pytest"
+]
+# django-settings-module = "mysite.settings"
+
+[tool.pylint.messages_control]
+disable = [
+    "logging-fstring-interpolation",
+    "global-statement",
+    "broad-exception-caught",
+    "too-few-public-methods",
+]
+
+
+[tool.pylint.format]
+max-line-length = 120
+good-names = [
+    "_",
+    "l", "r", "b", "t",
+    "l1", "r1", "b1", "t1",
+    "l2", "r2", "b2", "t2",
+    "i", "j",
+    "k", "v",
+    "f",
+]
+
+[tool.pylint.design]
+max-args = 10
+max-locals = 20
+max-attributes = 12
