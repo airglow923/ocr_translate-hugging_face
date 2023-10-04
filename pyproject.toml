@@ -6,7 +6,7 @@ build-backend = "flit_core.buildapi"
 [project]
 # See https://www.python.org/dev/peps/pep-0621/
 name = "ocr_translate-hugging_face"
-dynamic = ["version"] # read from ocr_translate/__init__.py
+dynamic = ["version"] # read from ocr_translate_hugging_face/__init__.py
 description = "Plugins to enable usage of HuggingFace Models in ocr_translate"
 authors = []
 readme = "README.md"
@@ -19,7 +19,6 @@ keywords = ["django", "translation"]
 requires-python = ">=3.10"
 dependencies = [
     "django-ocr_translate>=0.2.1,<1.0",
-    "Pillow~=9.5.0",
     "opencv-python-headless~=4.8.0.74",
 
     "torch~=2.0.1",
@@ -43,7 +42,6 @@ release = [
 tests = [
     "pytest",
     "pytest-cov",
-    # "pytest-regressions~=2.4",
     "pytest-django~=4.5.2",
 ]
 pre-commit = [
@@ -88,10 +86,8 @@ pythonpath = ["./tests"]
 
 [tool.pylint.main]
 load-plugins = [
-    # "pylint_django",
     "pylint_pytest"
 ]
-# django-settings-module = "mysite.settings"
 
 [tool.pylint.messages_control]
 disable = [
