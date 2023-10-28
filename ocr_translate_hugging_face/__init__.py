@@ -27,6 +27,52 @@ khawhite_ocr_model_data = {
     'entrypoint': 'hugginface.ved'
 }
 
+lucid_small_korean_ocr_model_data = {
+    'name': 'team-lucid/trocr-small-korean',
+    'lang': ['ko'],
+    'lang_code': 'iso1',
+    'entrypoint': 'hugginface.ved',
+    'ocr_mode': 'single'
+}
+
+# The microsoft trocr models seems pretty biased toward numbers eg IT -> 17
+# Tested with english but should work with all languages with latin alphabet?
+microsoft_small_trocr_printed_model_data = {
+    'name': 'microsoft/trocr-small-printed',
+    'lang': [
+        'sq', 'bm', 'be', 'bi', 'br', 'ch', 'co', 'hr', 'eo', 'et', 'fo', 'gl', 'ha', 'is', 'ig', 'ga', 'it', 'kk',
+        'lv', 'lt', 'mg', 'mt', 'gv', 'mh', 'oc', 'sm', 'sc', 'sr', 'sn', 'sl', 'so', 'sw', 'ty', 'tr', 'tk', 'uz',
+        'vi', 'cy', 'wo', 'yo', 'es', 'en', 'fr', 'de'
+        ],
+    'lang_code': 'iso1',
+    'entrypoint': 'hugginface.ved',
+    'ocr_mode': 'single'
+}
+
+microsoft_base_trocr_printed_model_data  = {
+    'name': 'microsoft/trocr-base-printed',
+    'lang': [
+        'sq', 'bm', 'be', 'bi', 'br', 'ch', 'co', 'hr', 'eo', 'et', 'fo', 'gl', 'ha', 'is', 'ig', 'ga', 'it', 'kk',
+        'lv', 'lt', 'mg', 'mt', 'gv', 'mh', 'oc', 'sm', 'sc', 'sr', 'sn', 'sl', 'so', 'sw', 'ty', 'tr', 'tk', 'uz',
+        'vi', 'cy', 'wo', 'yo', 'es', 'en', 'fr', 'de'
+        ],
+    'lang_code': 'iso1',
+    'entrypoint': 'hugginface.ved',
+    'ocr_mode': 'single'
+}
+
+# microsoft_small_trocr_stage1_model_data = {
+#     "name": "microsoft/trocr-small-stage1",
+#     "lang": [
+#         "sq", "bm", "be", "bi", "br", "ch", "co", "hr", "eo", "et", "fo", "gl", "ha", "is", "ig", "ga", "it", "kk",
+#         "lv", "lt", "mg", "mt", "gv", "mh", "oc", "sm", "sc", "sr", "sn", "sl", "so", "sw", "ty", "tr", "tk", "uz",
+#         "vi", "cy", "wo", "yo", "es", "en", "fr", "de"
+#         ],
+#     "lang_code": "iso1",
+#     "entrypoint": "hugginface.ved",
+#     "ocr_mode": "single"
+# }
+
 helsinki_zh_en_tsl_model_data = {
     'name': 'Helsinki-NLP/opus-mt-zh-en',
     'lang_src': ['zh'],

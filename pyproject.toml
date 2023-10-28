@@ -25,6 +25,7 @@ dependencies = [
     "torchvision~=0.15.2",
 
     "transformers~=4.30.2",
+    "protobuf~=3.20.0", # microsoft/trocr-small-printed: XLMRobertaConverter requires the protobuf library
     "fugashi~=1.2.1",
     "unidic-lite~=1.0.8",
     "sacremoses~=0.0.53",
@@ -53,6 +54,10 @@ pre-commit = [
 
 [project.entry-points."ocr_translate.ocr_data"]
 "ocr.hugginface.ved.khawhite" = "ocr_translate_hugging_face:khawhite_ocr_model_data"
+"ocr.hugginface.ved.lucidsmall" = "ocr_translate_hugging_face:lucid_small_korean_ocr_model_data"
+"ocr.hugginface.ved.microsoftprinted.small" = "ocr_translate_hugging_face:microsoft_small_trocr_printed_model_data"
+"ocr.hugginface.ved.microsoftprinted.base" = "ocr_translate_hugging_face:microsoft_base_trocr_printed_model_data"
+# "ocr.hugginface.ved.microsoftstage1.small" = "ocr_translate_hugging_face:microsoft_small_trocr_stage1_model_data"
 
 [project.entry-points."ocr_translate.tsl_data"]
 "tsl.hugginface.seq2seq.helsinki_zh_en" = "ocr_translate_hugging_face:helsinki_zh_en_tsl_model_data"
