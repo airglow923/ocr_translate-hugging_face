@@ -25,6 +25,7 @@ from ocr_translate import models as m
 from PIL import Image
 
 from ocr_translate_hugging_face import plugin as hugginface
+from ocr_translate_hugging_face.plugin.utils import EnvMixin, Loaders
 
 strings = [
     'This is a test string.',
@@ -112,7 +113,7 @@ def mock_loader(monkeypatch):
                     raise FileNotFoundError('Not in dir')
             elif isinstance(model_id, str):
                 if cache_dir is None:
-                    cache_dir = hugginface.EnvMixin().root
+                    cache_dir = EnvMixin().root
                 if not (cache_dir / f'models--{model_id.replace("/", "--")}').is_dir():
                     raise FileNotFoundError('Not in cache')
 
@@ -122,7 +123,7 @@ def mock_loader(monkeypatch):
                     pass
             return A()
 
-    monkeypatch.setattr(hugginface.Loaders, 'mapping', {
+    monkeypatch.setattr(Loaders, 'mapping', {
         'tokenizer': Loader(),
         'seq2seq': Loader(),
         'model': Loader(),

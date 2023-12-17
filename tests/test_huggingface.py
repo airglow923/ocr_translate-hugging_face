@@ -16,7 +16,7 @@
 #                                                                                 #
 # Home: https://github.com/Crivella/ocr_translate                                 #
 ###################################################################################
-"""Test base.py from ocr_tsl."""
+"""Test plugin."""
 # pylint: disable=redefined-outer-name
 
 from pathlib import Path
@@ -25,42 +25,43 @@ import pytest
 from ocr_translate import models as m
 
 from ocr_translate_hugging_face import plugin as hugginface
+from ocr_translate_hugging_face.plugin.utils import EnvMixin, Loaders
 
 # pytestmark = pytest.mark.django_db
 
 def test_env_transformers_cache(monkeypatch):
     """Test that the TRANSFORMERS_CACHE environment variable is set."""
     monkeypatch.setenv('TRANSFORMERS_CACHE', 'test')
-    mixin = hugginface.EnvMixin()
+    mixin = EnvMixin()
     assert mixin.root == Path('test')
 
 def test_env_transformers_cpu(monkeypatch):
     """Test that the DEVICE environment variable is cpu."""
     monkeypatch.setenv('DEVICE', 'cpu')
-    mixin = hugginface.EnvMixin()
+    mixin = EnvMixin()
     assert mixin.dev == 'cpu'
 
 def test_env_transformers_cuda(monkeypatch):
     """Test that the DEVICE environment variable is cuda."""
     monkeypatch.setenv('DEVICE', 'cuda')
-    mixin = hugginface.EnvMixin()
+    mixin = EnvMixin()
     assert mixin.dev == 'cuda'
 
 
 def test_load_hugginface_model_invalide_type():
     """Test high-level loading a huggingface model. Request unkown entity."""
     with pytest.raises(ValueError, match=r'^Unknown request: .*'):
-        hugginface.Loaders.load('test', ['invalid'], 'root')
+        Loaders.load('test', ['invalid'], 'root')
 
 def test_load_hugginface_model_return_none(monkeypatch):
     """Test high-level loading a huggingface model. Return None from load."""
     def mock_load(*args): # pylint: disable=unused-argument
         """Mocked load function."""
         return None
-    monkeypatch.setattr(hugginface.Loaders, '_load', mock_load)
+    monkeypatch.setattr(Loaders, '_load', mock_load)
 
     with pytest.raises(ValueError, match=r'^Could not load model: .*'):
-        hugginface.Loaders.load('test', ['model'], 'root')
+        Loaders.load('test', ['model'], 'root')
 
 @pytest.mark.parametrize('model_type', [
     'tokenizer',
@@ -73,16 +74,16 @@ def test_load_hugginface_model_success(monkeypatch, model_type):
     """Test high-level loading a huggingface model."""
     def mock_load(loader, *args): # pylint: disable=unused-argument
         """Mocked load function."""
-        assert loader == hugginface.Loaders.mapping[model_type]
+        assert loader == Loaders.mapping[model_type]
         class App():
             """Mocked huggingface class with `to` method."""
             def to(self, x): # pylint: disable=invalid-name,unused-argument
                 """Mocked method."""
                 return None
         return App()
-    monkeypatch.setattr(hugginface.Loaders, '_load', mock_load)
+    monkeypatch.setattr(Loaders, '_load', mock_load)
 
-    loaded = hugginface.Loaders.load('test', [model_type], 'root')
+    loaded = Loaders.load('test', [model_type], 'root')
 
     assert isinstance(loaded, dict)
     assert len(loaded) == 1
@@ -133,7 +134,7 @@ def test_unload_from_loaded_ved(monkeypatch, tmpdir, ved_model):
 
 def test_unload_cpu(monkeypatch, mock_called, ved_model):
     """Test unload box model with cpu."""
-    monkeypatch.setattr(hugginface.torch.cuda, 'empty_cache', mock_called)
+    monkeypatch.setattr(hugginface.ved.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(ved_model, 'dev', 'cpu')
 
     ved_model.unload()
@@ -141,7 +142,7 @@ def test_unload_cpu(monkeypatch, mock_called, ved_model):
 
 def test_unload_cuda(monkeypatch, mock_called, ved_model):
     """Test unload box model with cuda."""
-    monkeypatch.setattr(hugginface.torch.cuda, 'empty_cache', mock_called)
+    monkeypatch.setattr(hugginface.ved.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(ved_model, 'dev', 'cuda')
 
     ved_model.unload()
@@ -191,7 +192,7 @@ def test_pipeline_hugginface_cuda(
 def test_get_mnt_wrong_options():
     """Test get_mnt with wrong options."""
     with pytest.raises(ValueError, match=r'^min_max_new_tokens must be less than max_max_new_tokens$'):
-        hugginface.get_mnt(10, {'min_max_new_tokens': 20, 'max_max_new_tokens': 10})
+        hugginface.seq2seq.get_mnt(10, {'min_max_new_tokens': 20, 'max_max_new_tokens': 10})
 
 def test_load_from_storage_dir_fail_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
     """Test low-level loading a huggingface model from storage (missing file)."""
@@ -238,7 +239,7 @@ def test_unload_from_loaded_s2s(monkeypatch, tmpdir, s2s_model):
 
 def test_unload_cpu_s2s(monkeypatch, mock_called, s2s_model):
     """Test unload box model with cpu."""
-    monkeypatch.setattr(hugginface.torch.cuda, 'empty_cache', mock_called)
+    monkeypatch.setattr(hugginface.seq2seq.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(s2s_model, 'dev', 'cpu')
 
     s2s_model.unload()
@@ -246,7 +247,7 @@ def test_unload_cpu_s2s(monkeypatch, mock_called, s2s_model):
 
 def test_unload_cuda_s2s(monkeypatch, mock_called, s2s_model):
     """Test unload box model with cuda."""
-    monkeypatch.setattr(hugginface.torch.cuda, 'empty_cache', mock_called)
+    monkeypatch.setattr(hugginface.seq2seq.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(s2s_model, 'dev', 'cuda')
 
     s2s_model.unload()
@@ -275,7 +276,7 @@ def test_pipeline_no_tokens(monkeypatch, mock_tsl_tokenizer, s2s_model):
 
 def test_pipeline_m2m(monkeypatch, mock_tsl_tokenizer, mock_tsl_model, s2s_model):
     """Test tsl pipeline with m2m model."""
-    monkeypatch.setattr(hugginface, 'M2M100Tokenizer', mock_tsl_tokenizer)
+    monkeypatch.setattr(hugginface.seq2seq, 'M2M100Tokenizer', mock_tsl_tokenizer)
     monkeypatch.setattr(s2s_model, 'model', mock_tsl_model(s2s_model.name))
     monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer(s2s_model.name))
 
@@ -291,7 +292,7 @@ def test_pipeline(string, monkeypatch, mock_tsl_tokenizer, mock_tsl_model, mock_
 
     monkeypatch.setattr(s2s_model, 'model', mock_tsl_model(s2s_model.name))
     monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer(s2s_model.name))
-    monkeypatch.setattr(hugginface.torch.cuda, 'empty_cache', mock_called)
+    monkeypatch.setattr(hugginface.seq2seq.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(s2s_model, 'dev', 'cpu')
 
     res = s2s_model._translate([string,], lang_src, lang_dst) # pylint: disable=protected-access
@@ -309,7 +310,7 @@ def test_pipeline_clear_cache(monkeypatch, mock_tsl_tokenizer, mock_tsl_model, m
 
     monkeypatch.setattr(s2s_model, 'model', mock_tsl_model(s2s_model.name))
     monkeypatch.setattr(s2s_model, 'tokenizer', mock_tsl_tokenizer(s2s_model.name))
-    monkeypatch.setattr(hugginface.torch.cuda, 'empty_cache', mock_called)
+    monkeypatch.setattr(hugginface.seq2seq.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(s2s_model, 'dev', 'cuda')
 
     s2s_model._translate(['test',], lang_src, lang_dst) # pylint: disable=protected-access
@@ -369,7 +370,7 @@ def test_pipeline_options(options, string, monkeypatch, mock_tsl_tokenizer, mock
     else:
         s2s_model._translate(string, lang_src, lang_dst, options=options) # pylint: disable=protected-access
 
-    mnt = hugginface.get_mnt(ntok, options)
+    mnt = hugginface.seq2seq.get_mnt(ntok, options)
 
     model = s2s_model.model
 
