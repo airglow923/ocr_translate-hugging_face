@@ -91,11 +91,10 @@ class Loaders():
 
 def get_mnt(ntok: int, options: dict) -> int:
     """Get the maximum number of new tokens to generate."""
-    min_max_new_tokens = options.get('min_max_new_tokens', 20)
-    max_max_new_tokens = options.get('max_max_new_tokens', 512)
-    max_new_tokens = options.get('max_new_tokens', 20)
-    max_new_tokens_ratio = options.get('max_new_tokens_ratio', 3)
-
+    min_max_new_tokens = int(options.get('min_max_new_tokens', 20))
+    max_max_new_tokens = int(options.get('max_max_new_tokens', 512))
+    max_new_tokens_ratio = float(options.get('max_new_tokens_ratio', 3.0)
+)
     if min_max_new_tokens > max_max_new_tokens:
         raise ValueError('min_max_new_tokens must be less than max_max_new_tokens')
 
@@ -103,11 +102,10 @@ def get_mnt(ntok: int, options: dict) -> int:
         max_max_new_tokens,
         max(
             min_max_new_tokens,
-            max_new_tokens,
             max_new_tokens_ratio * ntok
         )
     )
-    return mnt
+    return int(mnt)
 
 class EnvMixin():
     """Mixin to allow usage of environment variables."""
@@ -119,6 +117,24 @@ class EnvMixin():
 
 class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
     """OCRtranslate plugin to allow loading of hugginface seq2seq model as translator."""
+    ALLOWED_OPTIONS = {
+        **m.TSLModel.ALLOWED_OPTIONS,
+        'min_max_new_tokens': {
+            'type': int,
+            'default': 20,
+            'description': 'Minimum number for the maximum number of tokens to generate.',
+        },
+        'max_max_new_tokens': {
+            'type': int,
+            'default': 512,
+            'description': 'Maximum number for the maximum number of tokens to generate.',
+        },
+        'max_new_tokens_ratio': {
+            'type': float,
+            'default': 3,
+            'description': 'Attempts to generate `ratio` * `#original_tokens` tokens during translation.',
+        },
+    }
 
     class Meta: # pylint: disable=missing-class-docstring
         proxy = True
