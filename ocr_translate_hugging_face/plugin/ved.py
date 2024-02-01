@@ -43,11 +43,19 @@ class HugginfaceVEDModel(m.OCRModel, EnvMixin):
         """Load the model into memory."""
         logger.info(f'Loading OCR VED model: {self.name}')
         res = Loaders.load(
-            self.name, request=['ved_model', 'tokenizer', 'image_processor'],
+            self.name, request=['ved_model'],
             root=self.root, dev=self.dev
             )
         self.model = res['ved_model']
+        res = Loaders.load(
+            self.tokenizer_name or self.name, request=['tokenizer'],
+            root=self.root, dev=self.dev
+            )
         self.tokenizer = res['tokenizer']
+        res = Loaders.load(
+            self.processor_name or self.name, request=['image_processor'],
+            root=self.root, dev=self.dev
+            )
         self.image_processor = res['image_processor']
 
     def unload(self) -> None:
