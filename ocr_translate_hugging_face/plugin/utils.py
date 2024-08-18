@@ -92,5 +92,11 @@ class EnvMixin():
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dev = os.environ.get('DEVICE', 'cpu')
-        self.root = Path(os.environ.get('TRANSFORMERS_CACHE', '.'))
-        logger.debug(f'Cache dir: {self.root}')
+        if 'TRANSFORMERS_CACHE' in os.environ:
+            self.root = Path(os.environ.get('TRANSFORMERS_CACHE'))
+        elif 'OCT_BASE_DIR' in os.environ:
+            self.root = Path(os.environ.get('OCT_BASE_DIR')) / 'models' / 'huggingface'
+        else:
+            raise ValueError('No TRANSFORMERS_CACHE or OCT_BASE_DIR environment variable found.')
+        self.root.mkdir(parents=True, exist_ok=True)
+        logger.debug(f'HuggingFace model dir: {self.root}')

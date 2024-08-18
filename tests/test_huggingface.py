@@ -29,24 +29,61 @@ from ocr_translate_hugging_face.plugin.utils import EnvMixin, Loaders
 
 # pytestmark = pytest.mark.django_db
 
-def test_env_transformers_cache(monkeypatch):
-    """Test that the TRANSFORMERS_CACHE environment variable is set."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', 'test')
-    mixin = EnvMixin()
-    assert mixin.root == Path('test')
+@pytest.fixture(autouse=True)
+def base(monkeypatch, tmpdir) -> Path:
+    """Mock base classes."""
+    tmp = str(tmpdir / 'base')
+    monkeypatch.setenv('OCT_BASE_DIR', tmp)
+    return Path(tmp)
 
-def test_env_transformers_cpu(monkeypatch):
-    """Test that the DEVICE environment variable is cpu."""
+@pytest.fixture()
+def cache(monkeypatch, tmpdir) -> Path:
+    """Mock base classes."""
+    tmp = str(tmpdir / 'cache')
+    monkeypatch.setenv('TRANSFORMERS_CACHE', tmp)
+    return Path(tmp)
+
+@pytest.fixture()
+def  device(monkeypatch) -> str:
+    """Mock base classes."""
     monkeypatch.setenv('DEVICE', 'cpu')
-    mixin = EnvMixin()
-    assert mixin.dev == 'cpu'
+    return 'cpu'
 
-def test_env_transformers_cuda(monkeypatch):
-    """Test that the DEVICE environment variable is cuda."""
+@pytest.fixture()
+def  device_cuda(monkeypatch) -> str:
+    """Mock base classes."""
     monkeypatch.setenv('DEVICE', 'cuda')
-    mixin = EnvMixin()
-    assert mixin.dev == 'cuda'
+    return 'cuda'
 
+def test_env_none(monkeypatch):
+    """Test that no env set causes ValueError."""
+    monkeypatch.delenv('OCT_BASE_DIR', raising=False)
+    with pytest.raises(ValueError):
+        EnvMixin()
+
+def test_env_transformers_cache(cache):
+    """Test that the TRANSFORMERS_CACHE environment variable is set."""
+    assert not cache.exists()
+    mixin = EnvMixin()
+    assert mixin.root == cache
+    assert cache.exists()
+
+def test_env_base_dir(base):
+    """Test that the OCT_BASE_DIR environment variable is set."""
+    assert not base.exists()
+    mixin = EnvMixin()
+    assert str(mixin.root).startswith(str(base))
+    assert base.exists()
+
+def test_env_transformers_cpu(device):
+    """Test that the DEVICE environment variable is cpu."""
+    mixin = EnvMixin()
+    assert mixin.dev == device
+
+def test_env_transformers_cuda(device_cuda):
+    """Test that the DEVICE environment variable is cuda."""
+    mixin = EnvMixin()
+    assert mixin.dev == device_cuda
 
 def test_load_hugginface_model_invalide_type():
     """Test high-level loading a huggingface model. Request unkown entity."""
@@ -90,40 +127,33 @@ def test_load_hugginface_model_success(monkeypatch, model_type):
     assert model_type in loaded
 
 ####################################################################################
-def test_load_from_storage_dir_fail(monkeypatch, mock_loader, tmpdir, ved_model):
+def test_load_from_storage_dir_fail(mock_loader, ved_model):
     """Test low-level loading a huggingface model from storage (missing file)."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
-    # Reload to make ENV effective
-    # ved_model = hugginface.HugginfaceVEDModel.objects.get(name = ved_model.name)
-
-    # Load is supposed to test direcotry first and than fallnack to cache
+    # Load is supposed to test direcotry first and than fallback to cache
     # Exception should always be from not found in cache first
     with pytest.raises(FileNotFoundError, match='Not in cache'):
         ved_model.load()
 
-def test_load_from_storage_dir_success(monkeypatch, mock_loader, tmpdir, ved_model):
+def test_load_from_storage_dir_success(cache, mock_loader, ved_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
-    monkeypatch.setattr(ved_model, 'root', Path(str(tmpdir)))
+    # monkeypatch.setattr(ved_model, 'root', tmp_dir)
     # Reload to make ENV effective
     # ved_model = hugginface.HugginfaceVEDModel.objects.get(name = ved_model.name)
 
-    ptr = tmpdir
+    ptr = cache
     for pth in Path(ved_model.name).parts:
-        ptr = ptr.mkdir(pth)
+        new = ptr / pth
+        new.mkdir(exist_ok=True)
+        ptr = new
     ved_model.load()
 
-def test_load_from_storage_cache_success(monkeypatch, mock_loader, tmpdir, ved_model):
+def test_load_from_storage_cache_success(mock_loader, cache, ved_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
-    monkeypatch.setattr(ved_model, 'root', Path(str(tmpdir)))
-    # Reload to make ENV effective
-    # ved_model = hugginface.HugginfaceVEDModel.objects.get(name = ved_model.name)
-
-    tmpdir.mkdir('models--' + ved_model.name.replace('/', '--'))
+    new = cache / ('models--' + ved_model.name.replace('/', '--'))
+    new.mkdir(exist_ok=True)
     ved_model.load()
 
-def test_unload_from_loaded_ved(monkeypatch, tmpdir, ved_model):
+def test_unload_from_loaded_ved(monkeypatch, cache, ved_model):
     """Test unload box model with cpu."""
     monkeypatch.setattr(ved_model, 'model', '1')
     monkeypatch.setattr(ved_model, 'tokenizer', '1')
@@ -132,7 +162,7 @@ def test_unload_from_loaded_ved(monkeypatch, tmpdir, ved_model):
     assert ved_model.model is None
     assert ved_model.tokenizer is None
 
-def test_unload_cpu(monkeypatch, mock_called, ved_model):
+def test_unload_cpu(monkeypatch, cache, mock_called, ved_model):
     """Test unload box model with cpu."""
     monkeypatch.setattr(hugginface.ved.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(ved_model, 'dev', 'cpu')
@@ -140,7 +170,7 @@ def test_unload_cpu(monkeypatch, mock_called, ved_model):
     ved_model.unload()
     assert not hasattr(mock_called, 'called')
 
-def test_unload_cuda(monkeypatch, mock_called, ved_model):
+def test_unload_cuda(monkeypatch, cache, mock_called, ved_model):
     """Test unload box model with cuda."""
     monkeypatch.setattr(hugginface.ved.torch.cuda, 'empty_cache', mock_called)
     monkeypatch.setattr(ved_model, 'dev', 'cuda')
@@ -156,13 +186,13 @@ def test_unload_cuda(monkeypatch, mock_called, ved_model):
 #     with pytest.raises(TypeError, match=r'^img should be PIL Image.*'):
 #         hf_ved_model._ocr('invalid_image', 'ja') # pylint: disable=protected-access
 
-def test_pipeline_notinit_ved(ved_model):
+def test_pipeline_notinit_ved(cache, ved_model):
     """Test tsl pipeline with not initialized model."""
     with pytest.raises(RuntimeError, match=r'^Model not loaded$'):
         ved_model._ocr('image') # pylint: disable=protected-access
 
 def test_pipeline_hugginface(
-        image_pillow, mock_ocr_preprocessor, mock_ocr_tokenizer, mock_ocr_model, monkeypatch, ved_model):
+        image_pillow, cache, mock_ocr_preprocessor, mock_ocr_tokenizer, mock_ocr_model, monkeypatch, ved_model):
     """Test ocr pipeline with hugginface model."""
     lang = 'ja'
 
@@ -194,41 +224,32 @@ def test_get_mnt_wrong_options():
     with pytest.raises(ValueError, match=r'^min_max_new_tokens must be less than max_max_new_tokens$'):
         hugginface.seq2seq.get_mnt(10, {'min_max_new_tokens': 20, 'max_max_new_tokens': 10})
 
-def test_load_from_storage_dir_fail_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
+def test_load_from_storage_dir_fail_s2s(mock_loader, s2s_model):
     """Test low-level loading a huggingface model from storage (missing file)."""
-    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
-    monkeypatch.setattr(s2s_model, 'root', Path(str(tmpdir)))
-    # Reload to make ENV effective
-    # s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
-
     # Load is supposed to test direcotry first and than fallnack to cache
     # Exception should always be from not found in cache first
     with pytest.raises(FileNotFoundError, match='Not in cache'):
         s2s_model.load()
 
-def test_load_from_storage_dir_success_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
+def test_load_from_storage_dir_success_s2s(base, mock_loader, s2s_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
-    monkeypatch.setattr(s2s_model, 'root', Path(str(tmpdir)))
     # Reload to make ENV effective
     # s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
 
-    ptr = tmpdir
+    ptr = s2s_model.root
     for pth in Path(s2s_model.name).parts:
-        ptr = ptr.mkdir(pth)
+        new = ptr / pth
+        ptr = new.mkdir(exist_ok=True)
+        ptr = new
     s2s_model.load()
 
-def test_load_from_storage_cache_success_s2s(monkeypatch, mock_loader, tmpdir, s2s_model):
+def test_load_from_storage_cache_success_s2s(base, mock_loader, s2s_model):
     """Test low-level loading a huggingface model from storage (success)."""
-    # monkeypatch.setenv('TRANSFORMERS_CACHE', str(tmpdir))
-    # Reload to make ENV effective
-    monkeypatch.setattr(s2s_model, 'root', Path(str(tmpdir)))
-    # s2s_model = hugginface.HugginfaceSeq2SeqModel.objects.get(name = s2s_model.name)
-
-    tmpdir.mkdir('models--' + s2s_model.name.replace('/', '--'))
+    pth = s2s_model.root / ('models--' + s2s_model.name.replace('/', '--'))
+    pth.mkdir(exist_ok=True)
     s2s_model.load()
 
-def test_unload_from_loaded_s2s(monkeypatch, tmpdir, s2s_model):
+def test_unload_from_loaded_s2s(monkeypatch, s2s_model):
     """Test unload box model with cpu."""
     monkeypatch.setattr(s2s_model, 'model', '1')
     monkeypatch.setattr(s2s_model, 'tokenizer', '1')
