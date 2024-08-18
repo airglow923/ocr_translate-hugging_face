@@ -16,78 +16,16 @@
 #                                                                                 #
 # Home: https://github.com/Crivella/ocr_translate-hugging_face                    #
 ###################################################################################
-"""ocr_translate plugin to allow loading of hugginface models."""
+"""Class to enable hugginface Seq2Seq models."""
 import logging
-import os
-from pathlib import Path
 
 import torch
 from ocr_translate import models as m
-from PIL import Image
-from transformers import (AutoImageProcessor, AutoModel, AutoModelForSeq2SeqLM,
-                          AutoTokenizer, M2M100Tokenizer,
-                          VisionEncoderDecoderModel)
+from transformers import M2M100Tokenizer
+
+from .utils import EnvMixin, Loaders
 
 logger = logging.getLogger('plugin')
-
-class Loaders():
-    """Generic functions to load HuggingFace's Classes."""
-    accept_device = ['ved_model', 'seq2seq', 'model']
-
-    mapping = {
-        'tokenizer': AutoTokenizer,
-        'ved_model': VisionEncoderDecoderModel,
-        'model': AutoModel,
-        'image_processor': AutoImageProcessor,
-        'seq2seq': AutoModelForSeq2SeqLM
-    }
-
-    @staticmethod
-    def _load(loader, model_id: str, root: Path):
-        """Use the specified loader to load a transformers specific Class."""
-        try:
-            mid = root / model_id
-            logger.debug(f'Attempt loading from store: "{loader}" "{mid}"')
-            res = loader.from_pretrained(mid)
-        except Exception:
-            # Needed to catch some weird exception from transformers
-            # eg: huggingface_hub.utils._validators.HFValidationError: Repo id must use alphanumeric chars or
-            # '-', '_', '.', '--' and '..' are forbidden, '-' and '.'
-            # cannot start or end the name, max length is 96: ...
-            logger.debug(f'Attempt loading from cache: "{loader}" "{model_id}" "{root}"')
-            res = loader.from_pretrained(model_id, cache_dir=root)
-        return res
-
-    @staticmethod
-    def load(model_id: str, request: list[str], root: Path, dev: str = 'cpu') -> list:
-        """Load the requested HuggingFace's Classes for the model into the memory of the globally specified device.
-
-        Args:
-            model_id (str): The HuggingFace model id to load, or a path to a local model.
-            request (list[str]): A list of HuggingFace's Classes to load.
-            root (Path): The root path to use for the cache.
-
-        Raises:
-            ValueError: If the model_id is not found or if the requested Class is not supported.
-
-        Returns:
-            _type_: A list of the requested Classes.
-        """    """"""
-        res = {}
-        for r in request:
-            if r not in Loaders.mapping:
-                raise ValueError(f'Unknown request: {r}')
-            cls = Loaders._load(Loaders.mapping[r], model_id, root)
-            if cls is None:
-                raise ValueError(f'Could not load model: {model_id}')
-
-            if r in Loaders.accept_device:
-                cls = cls.to(dev)
-
-            res[r] = cls
-
-        return res
-
 
 def get_mnt(ntok: int, options: dict) -> int:
     """Get the maximum number of new tokens to generate."""
@@ -106,14 +44,6 @@ def get_mnt(ntok: int, options: dict) -> int:
         )
     )
     return int(mnt)
-
-class EnvMixin():
-    """Mixin to allow usage of environment variables."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.dev = os.environ.get('DEVICE', 'cpu')
-        self.root = Path(os.environ.get('TRANSFORMERS_CACHE', '.'))
-        logger.debug(f'Cache dir: {self.root}')
 
 class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
     """OCRtranslate plugin to allow loading of hugginface seq2seq model as translator."""
@@ -232,80 +162,3 @@ class HugginfaceSeq2SeqModel(m.TSLModel, EnvMixin):
             torch.cuda.empty_cache()
 
         return tsl
-
-    # def translate_batch(self, texts):
-    #     """Translate a batch of texts."""
-    #     raise NotImplementedError
-
-class HugginfaceVEDModel(m.OCRModel, EnvMixin):
-    """OCRtranslate plugin to allow loading of hugginface VisionEncoderDecoder model as text OCR."""
-    class Meta: # pylint: disable=missing-class-docstring
-        proxy = True
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the model."""
-        super().__init__(*args, **kwargs)
-        self.tokenizer = None
-        self.model = None
-        self.image_processor = None
-
-    def load(self):
-        """Load the model into memory."""
-        logger.info(f'Loading OCR VED model: {self.name}')
-        res = Loaders.load(
-            self.name, request=['ved_model', 'tokenizer', 'image_processor'],
-            root=self.root, dev=self.dev
-            )
-        self.model = res['ved_model']
-        self.tokenizer = res['tokenizer']
-        self.image_processor = res['image_processor']
-
-    def unload(self) -> None:
-        """Unload the model from memory."""
-        if self.model is not None:
-            del self.model
-            self.model = None
-        if self.tokenizer is not None:
-            del self.tokenizer
-            self.tokenizer = None
-        if self.image_processor is not None:
-            del self.image_processor
-            self.image_processor = None
-
-        if self.dev == 'cuda':
-            torch.cuda.empty_cache()
-
-    def _ocr(
-            self,
-            img: Image.Image, lang: str = None, options: dict = None
-            ) -> str:
-        """Perform OCR on an image.
-
-        Args:
-            img (Image.Image):  A Pillow image on which to perform OCR.
-            lang (str, optional): The language to use for OCR. (Not every model will use this)
-            bbox (tuple[int, int, int, int], optional): The bounding box of the text on the image in lbrt format.
-            options (dict, optional): A dictionary of options to pass to the OCR model.
-
-        Raises:
-            TypeError: If img is not a Pillow image.
-
-        Returns:
-            str: The text extracted from the image.
-        """
-        if self.model is None or self.tokenizer is None or self.image_processor is None:
-            raise RuntimeError('Model not loaded')
-
-        if options is None:
-            options = {}
-
-        pixel_values = self.image_processor(img, return_tensors='pt').pixel_values
-        if self.dev == 'cuda':
-            pixel_values = pixel_values.cuda()
-        generated_ids = self.model.generate(pixel_values)
-        generated_text = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-
-        if self.dev == 'cuda':
-            torch.cuda.empty_cache()
-
-        return generated_text
