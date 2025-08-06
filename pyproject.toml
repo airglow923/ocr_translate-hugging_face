@@ -19,12 +19,12 @@ keywords = ["django", "translation"]
 requires-python = ">=3.10"
 dependencies = [
     "django-ocr_translate>=0.5.0,<1.0",
-    "opencv-python-headless~=4.8.0.74",
+    "opencv-python-headless>=4.8.0.74",
 
     "torch>=2.2.1",
     "torchvision>=0.17.1",
 
-    "transformers~=4.30.2",
+    "transformers>=4.30.2",
     "protobuf>=3.20.0", # microsoft/trocr-small-printed: XLMRobertaConverter requires the protobuf library
     "fugashi>=1.2.1",
     "unidic-lite>=1.0.8",
